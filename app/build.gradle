@@ -1,0 +1,84 @@
+plugins {
+  id 'com.android.application'
+  id 'org.jetbrains.kotlin.android'
+  id "org.jetbrains.kotlin.kapt"
+  id 'androidx.navigation.safeargs.kotlin'
+  id 'kotlin-parcelize'
+}
+
+android {
+  namespace 'com.intdv.robotzone'
+  compileSdk 33
+
+  defaultConfig {
+    applicationId "com.intdv.robotzone"
+    minSdk 23
+    targetSdk 33
+    versionCode 1
+    versionName "1.0"
+
+    testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+  }
+
+  buildTypes {
+    applicationVariants.all {
+      buildConfigField "String", "DATABASE_REF", database_url
+    }
+
+    release {
+      minifyEnabled false
+      proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+    }
+  }
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_1_8
+    targetCompatibility JavaVersion.VERSION_1_8
+  }
+  kotlinOptions {
+    jvmTarget = '1.8'
+  }
+  buildFeatures {
+    viewBinding = true
+    dataBinding = true
+  }
+}
+
+dependencies {
+
+  def nav_version = "2.5.3"
+
+  // Androidx libs
+  implementation 'androidx.core:core-ktx:1.9.0'
+  implementation 'androidx.appcompat:appcompat:1.6.1'
+  implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+  implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:2.5.1"
+  implementation "androidx.lifecycle:lifecycle-livedata-ktx:2.5.1"
+  implementation 'androidx.fragment:fragment-ktx:1.5.5'
+  implementation 'com.google.android.material:material:1.8.0'
+  implementation "androidx.work:work-runtime-ktx:2.8.0"
+
+  // Kotlin
+  implementation("androidx.navigation:navigation-fragment-ktx:$nav_version")
+  implementation("androidx.navigation:navigation-ui-ktx:$nav_version")
+
+  // Toasty - for toast messages
+  implementation 'com.github.GrenderG:Toasty:1.5.2'
+
+  // Timber - for Logging
+  implementation 'com.jakewharton.timber:timber:5.0.1'
+
+  //Koin
+  // Koin main features for Android
+  implementation "io.insert-koin:koin-android:3.2.2"
+
+  //pepper
+  implementation 'com.aldebaran:qisdk:1.7.5'
+  implementation 'com.aldebaran:qisdk-design:1.7.5'
+
+  // Permissions Manager
+  implementation 'com.guolindev.permissionx:permissionx:1.7.1'
+
+  testImplementation 'junit:junit:4.13.2'
+  androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+  androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+}

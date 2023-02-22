@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "74583559291",
+    "project_id": "robot-gps-b2f17",
+    "storage_bucket": "robot-gps-b2f17.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:74583559291:android:f26c6e0d08962991f326de",
+        "android_client_info": {
+          "package_name": "com.intdv.robotgpsnavigation"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "74583559291-205k735ast012m7tgcqofvaknrd0rcum.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCHV4INF1f4ENiZst9Drj4E-zh0HNfTE14"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "74583559291-205k735ast012m7tgcqofvaknrd0rcum.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

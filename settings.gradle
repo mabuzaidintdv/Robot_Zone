@@ -1,0 +1,19 @@
+pluginManagement {
+  repositories {
+    gradlePluginPortal()
+    google() // Google's Maven repository
+    mavenCentral() // Maven Central repository
+  }
+}
+dependencyResolutionManagement {
+  repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+  repositories {
+    google()
+    mavenCentral()
+    maven { url 'https://jitpack.io' }
+    maven { url 'https://qisdk.softbankrobotics.com/sdk/maven' }
+    maven { url 'https://github.com/FireZenk/maven-repo/raw/master/' }
+  }
+}
+rootProject.name = "Robot Zone"
+include ':app'
