@@ -1,54 +1,42 @@
 package com.intdv.robotzone
 
-import android.graphics.BitmapFactory
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.os.Message
 import androidx.core.view.isVisible
-import com.aldebaran.qi.Future
 import com.aldebaran.qi.sdk.QiContext
 import com.aldebaran.qi.sdk.QiSDK
 import com.aldebaran.qi.sdk.RobotLifecycleCallbacks
-import com.aldebaran.qi.sdk.builder.ApproachHumanBuilder
-import com.aldebaran.qi.sdk.builder.EngageHumanBuilder
-import com.aldebaran.qi.sdk.builder.SayBuilder
 import com.aldebaran.qi.sdk.design.activity.RobotActivity
-import com.aldebaran.qi.sdk.`object`.actuation.Actuation
-import com.aldebaran.qi.sdk.`object`.actuation.Frame
-import com.aldebaran.qi.sdk.`object`.conversation.Say
-import com.aldebaran.qi.sdk.`object`.geometry.Transform
-import com.aldebaran.qi.sdk.`object`.geometry.TransformTime
-import com.aldebaran.qi.sdk.`object`.geometry.Vector3
-import com.aldebaran.qi.sdk.`object`.human.*
-import com.aldebaran.qi.sdk.`object`.humanawareness.EngageHuman
-import com.aldebaran.qi.sdk.`object`.humanawareness.HumanAwareness
 import com.intdv.robotzone.adapters.HumansAdapter
 import com.intdv.robotzone.databinding.ActivityMainBinding
 import com.intdv.robotzone.interfaces.RobotDelegate
-import org.koin.android.ext.android.inject
+import com.intdv.robotzone.models.HumanModel
+import com.intdv.robotzone.threads.AwarenessThread
+import es.dmoral.toasty.Toasty
 import timber.log.Timber
-import java.nio.ByteBuffer
-import kotlin.math.sqrt
 
 class MainActivity : RobotActivity(), RobotLifecycleCallbacks, RobotDelegate, HumansAdapter.IHumanListener {
 
     private var _binding: ActivityMainBinding? = null
     private val binding get() = _binding!!
 
-    private val _viewModel: MainViewModel by inject()
+    private var _qiContext: QiContext? = null
+
     private lateinit var humansAdapter: HumansAdapter
 
-    private var _qiContext: QiContext? = null
-    private var _humanAwareness: HumanAwareness? = null
-    private var _engagement: Future<Void>? = null
-    private var _approach: Future<Void>? = null
+    private var mHandler: Handler? = null
+    private var _awarenessThread: AwarenessThread? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         _binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        setContentView(R.layout.activity_main)
-
         QiSDK.register(this, this)
+
+        setupThreadHandler()
 
         humansAdapter = HumansAdapter(this)
         binding.rvHumans.adapter = humansAdapter
@@ -66,29 +54,59 @@ class MainActivity : RobotActivity(), RobotLifecycleCallbacks, RobotDelegate, Hu
         }
 
         binding.btApproach.setOnClickListener {
-            _viewModel.selectedHuman?.let {
-                approachSelectedHuman(it)
-            }
+            approachSelectedHuman()
         }
 
         binding.btEngage.setOnClickListener {
-            _viewModel.selectedHuman?.let {
-                engageSelectedHuman(it)
+            engageSelectedHuman()
+        }
+    }
+
+    private fun setupThreadHandler() {
+        mHandler = object : Handler(Looper.getMainLooper()) {
+            override fun handleMessage(msg: Message) {
+                if (msg.what == AwarenessThread.HUMANS_LIST) {
+                    val humans: List<Int> = msg.data.getIntegerArrayList("humans_list")?.toList() ?: listOf()
+                    humansAdapter.setHumans(humans)
+
+                } else if (msg.what == AwarenessThread.HUMAN_DATA) {
+                    val humanData: HumanModel? = msg.data.getParcelable("human_model")
+                    loadHumanDataToView(humanData)
+                }
             }
+        }
+    }
+
+    private fun loadHumanDataToView(humanData: HumanModel?) {
+        if (humanData != null) {
+            with(binding) {
+                tvAge.text = getString(R.string.human_age, humanData.age)
+                tvGender.text = getString(R.string.human_gender, humanData.gender)
+                tvPleasure.text = getString(R.string.human_pleasure_state, humanData.pleasureState)
+                tvExcitement.text = getString(R.string.human_excitement_state, humanData.excitementState)
+                tvEngagement.text = getString(R.string.human_engagement_state, humanData.engagementIntentionState)
+                tvSmile.text = getString(R.string.human_smile_state, humanData.smileState)
+                tvAttention.text = getString(R.string.human_attention_state, humanData.attentionState)
+
+                humanData.photo?.let {
+                    ivHumanFace.setImageBitmap(it)
+                } ?: ivHumanFace.setImageResource(R.drawable.ic_person)
+            }
+        } else {
+            Toasty.error(this, "Error Fetching Human Data", Toasty.LENGTH_LONG).show()
         }
     }
 
     override fun onRobotFocusGained(qiContext: QiContext?) {
         Timber.tag(TAG).d("onRobotFocusGained()")
         _qiContext = qiContext
-        _humanAwareness = _qiContext?.humanAwareness
 
-        findHumansAround()
-        recommendHumanToApproach()
+        startAwarenessThread()
     }
 
     override fun onRobotFocusLost() {
         Timber.tag(TAG).d("onRobotFocusLost()")
+        _awarenessThread?.killThread()
         _qiContext = null
     }
 
@@ -96,152 +114,41 @@ class MainActivity : RobotActivity(), RobotLifecycleCallbacks, RobotDelegate, Hu
         Timber.tag(TAG).d("onRobotFocusRefused()")
     }
 
+    private fun startAwarenessThread() {
+        object : Thread() {
+            override fun run() {
+                Timber.tag(TAG).d("Connecting To Thread")
+                _awarenessThread = AwarenessThread(_qiContext, mHandler!!)
+                _awarenessThread?.start()
+            }
+        }.start()
+    }
+
     private fun findHumansAround() {
-        val humansAroundFuture: Future<List<Human>>? = _humanAwareness?.async()?.humansAround
-        humansAroundFuture?.andThenConsume { humansAround: List<Human> ->
-            Timber.tag(TAG).i("${humansAround.size} human(s) around.")
-            humansAdapter.setHumans(humansAround)
-        }
+        _awarenessThread?.updateThreadAction(AwarenessThread.FIND_HUMANS)
     }
 
     private fun recommendHumanToApproach() {
-        val humansAroundFuture: Future<Human>? = _humanAwareness?.async()?.recommendedHumanToApproach
-        humansAroundFuture?.andThenConsume { human: Human ->
-            //humansAdapter.setHumans(listOf(human))
-            approachSelectedHuman(human)
-        }
+        _awarenessThread?.updateThreadAction(AwarenessThread.RECOMMEND_APPROACH)
     }
 
     private fun recommendHumanToEngage() {
-        val humansAroundFuture: Future<Human>? = _humanAwareness?.async()?.recommendedHumanToEngage
-        humansAroundFuture?.andThenConsume { human: Human ->
-            //humansAdapter.setHumans(listOf(human))
-            engageSelectedHuman(human)
-        }
+        _awarenessThread?.updateThreadAction(AwarenessThread.RECOMMEND_ENGAGE)
     }
 
-    override fun onHumanClicked(human: Human) {
+    override fun onHumanClicked(human: Int) {
         Timber.tag(TAG).i("Human Clicked")
         binding.llHumansData.isVisible = true
-        _viewModel.selectedHuman = human
-        retrieveCharacteristics(human)
+        _awarenessThread?.setThreadSelectedHuman(human)
+        _awarenessThread?.retrieveCharacteristics()
     }
 
-    private fun retrieveCharacteristics(human: Human) {
-        // Get the characteristics.
-        val age: Int = human.estimatedAge.years
-        binding.tvAge.text = getString(R.string.human_age, age)
-
-        val gender: Gender = human.estimatedGender
-        binding.tvGender.text = getString(R.string.human_gender, gender)
-
-        val pleasureState: PleasureState = human.emotion.pleasure
-        binding.tvPleasure.text = getString(R.string.human_pleasure_state, pleasureState)
-
-        val excitementState: ExcitementState = human.emotion.excitement
-        binding.tvExcitement.text = getString(R.string.human_excitement_state, excitementState)
-
-        val engagementIntentionState: EngagementIntentionState = human.engagementIntention
-        binding.tvEngagement.text = getString(R.string.human_engagement_state, engagementIntentionState)
-
-        val smileState: SmileState = human.facialExpressions.smile
-        binding.tvSmile.text = getString(R.string.human_smile_state, smileState)
-
-        val attentionState: AttentionState = human.attention
-        binding.tvAttention.text = getString(R.string.human_attention_state, attentionState)
-
-        retrieveDistance(human)
-        retrievePhoto(human)
-
-        // Display the characteristics.
-        Timber.tag(TAG).i("Age: $age year(s)")
-        Timber.tag(TAG).i("Gender: $gender")
-        Timber.tag(TAG).i("Pleasure state: $pleasureState")
-        Timber.tag(TAG).i("Excitement state: $excitementState")
-        Timber.tag(TAG).i("Engagement state: $engagementIntentionState")
-        Timber.tag(TAG).i("Smile state: $smileState")
-        Timber.tag(TAG).i("Attention state: $attentionState")
+    private fun approachSelectedHuman() {
+        _awarenessThread?.approachHuman()
     }
 
-    private fun retrieveDistance(human: Human) {
-        _qiContext?.let {
-            val actuation: Actuation = it.actuation
-            val robotFrame: Frame = actuation.robotFrame()
-            val humanFrame: Frame = human.headFrame
-
-            val distance = computeDistance(humanFrame, robotFrame)
-            Timber.tag(TAG).i("Distance: $distance meter(s).")
-        }
-    }
-
-    private fun retrievePhoto(human: Human) {
-        // Get face picture.
-        val facePictureBuffer: ByteBuffer = human.facePicture.image.data
-        facePictureBuffer.rewind()
-        val pictureBufferSize: Int = facePictureBuffer.remaining()
-        val facePictureArray = ByteArray(pictureBufferSize)
-        facePictureBuffer.get(facePictureArray)
-
-        // Test if the robot has an empty picture
-        if (pictureBufferSize != 0) {
-            Timber.tag(TAG).i("Picture available")
-            val facePicture = BitmapFactory.decodeByteArray(facePictureArray, 0, pictureBufferSize)
-            binding.ivHumanFace.setImageBitmap(facePicture)
-        } else {
-            Timber.tag(TAG).i("Picture not available")
-            binding.ivHumanFace.setImageResource(R.drawable.ic_person)
-        }
-    }
-
-    private fun computeDistance(humanFrame: Frame, robotFrame: Frame): Double {
-        // Get the TransformTime between the human frame and the robot frame.
-        val transformTime: TransformTime = humanFrame.computeTransform(robotFrame)
-        // Get the transform.
-        val transform: Transform = transformTime.transform
-        val translation: Vector3 = transform.translation
-        // Get the x and y components of the translation.
-        val x = translation.x
-        val y = translation.y
-        // Compute the distance and return it.
-        return sqrt(x * x + y * y)
-    }
-
-    private fun approachSelectedHuman(human: Human) {
-        _qiContext?.let {
-            val approachHuman = ApproachHumanBuilder.with(it)
-                .withHuman(human)
-                .build()
-
-            approachHuman.addOnHumanIsTemporarilyUnreachableListener {
-                val say = SayBuilder.with(it)
-                    .withText("I have troubles to reach you, come closer!")
-                    .build()
-                say.run()
-            }
-
-            _approach = approachHuman.async().run()
-        }
-    }
-
-    private fun engageSelectedHuman(human: Human) {
-        _qiContext?.let {
-            val engageHuman: EngageHuman = EngageHumanBuilder.with(it)
-                .withHuman(human)
-                .build()
-
-            val say: Say = SayBuilder.with(it)
-                .withText("Hello!... How are you today?")
-                .build()
-
-            engageHuman.addOnHumanIsEngagedListener { say.run() }
-
-            engageHuman.addOnHumanIsDisengagingListener {
-                say.run()
-                _engagement?.requestCancellation()
-            }
-
-            _engagement = engageHuman.async().run()
-        }
+    private fun engageSelectedHuman() {
+        _awarenessThread?.engageHuman()
     }
 
     override fun onDestroy() {

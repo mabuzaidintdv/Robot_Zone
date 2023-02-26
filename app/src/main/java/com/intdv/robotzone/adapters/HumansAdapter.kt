@@ -4,15 +4,14 @@ import android.annotation.SuppressLint
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
-import com.aldebaran.qi.sdk.`object`.human.Human
 import com.intdv.robotzone.databinding.ItemHumanBinding
 
 class HumansAdapter(private val listener: IHumanListener) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
-    private val humans = mutableListOf<Human>()
+    private val humans = mutableListOf<Int>()
 
     @SuppressLint("NotifyDataSetChanged")
-    fun setHumans(items: List<Human>) {
+    fun setHumans(items: List<Int>) {
         this.humans.clear()
         this.humans.addAll(items)
         notifyDataSetChanged()
@@ -36,16 +35,16 @@ class HumansAdapter(private val listener: IHumanListener) : RecyclerView.Adapter
     }
 
     interface IHumanListener {
-        fun onHumanClicked(human: Human)
+        fun onHumanClicked(human: Int)
     }
 
     inner class HumansViewHolder(
         private val binding: ItemHumanBinding
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(human: Human) {
+        fun bind(human: Int) {
             binding.apply {
-                tvHuman.text = human.estimatedAge.toString()
+                tvHuman.text = "Human ${human + 1}"
                 root.setOnClickListener {
                     listener.onHumanClicked(human)
                 }
