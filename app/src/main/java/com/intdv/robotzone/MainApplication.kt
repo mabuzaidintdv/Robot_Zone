@@ -21,7 +21,7 @@ class MainApplication : Application() {
             androidContext(this@MainApplication)
 
             modules(module {
-                single { MainViewModel(application = get()) }
+                //single { MainViewModel(application = get()) }
             })
         }
 
