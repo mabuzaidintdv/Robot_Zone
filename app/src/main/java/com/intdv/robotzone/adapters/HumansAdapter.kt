@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
+import com.intdv.robotzone.R
 import com.intdv.robotzone.databinding.ItemHumanBinding
 
 class HumansAdapter(private val listener: IHumanListener) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
@@ -44,7 +45,7 @@ class HumansAdapter(private val listener: IHumanListener) : RecyclerView.Adapter
 
         fun bind(human: Int) {
             binding.apply {
-                tvHuman.text = "Human ${human + 1}"
+                tvHuman.text = tvHuman.context.getString(R.string.human_item, (human + 1))
                 root.setOnClickListener {
                     listener.onHumanClicked(human)
                 }

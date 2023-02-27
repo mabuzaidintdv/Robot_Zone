@@ -1,27 +1,7 @@
 <resources>
   <string name="app_name">RobotZone</string>
 
-  <string name="permission_allow">Allow</string>
-  <string name="permission_deny">Deny</string>
-
-  <string name="request_location_permission">This application requires access to location data in order to
-        function properly</string>
-
   <!--  Main Activity-->
-
-  <!--  Nav Fragments Labels-->
-  <string name="home_fragment_label">Home Fragment</string>
-
-  <!--  Home Fragment-->
-  <string name="home_bar_title">Robot Zone</string>
-  <string name="home_title">Nearby Humans</string>
-
-  "Pleasure state: $pleasureState")
-  Timber.i(TAG, "Excitement state: $excitementState")
-  Timber.i(TAG, "Engagement state: $engagementIntentionState")
-  Timber.i(TAG, "Smile state: $smileState")
-  Timber.i(TAG, "Attention state:
-
   <string name="find_humans">Find Humans</string>
   <string name="recommend_approach">Recommend Approach</string>
   <string name="recommend_engage">Recommend Engage</string>
@@ -34,5 +14,6 @@
   <string name="human_engagement_state">Engagement state: %s</string>
   <string name="human_smile_state">Smile state: %s</string>
   <string name="human_attention_state">Attention state: %s</string>
+  <string name="human_item">Human %d</string>
 
 </resources>
