@@ -11,13 +11,12 @@ import com.aldebaran.qi.sdk.RobotLifecycleCallbacks
 import com.aldebaran.qi.sdk.design.activity.RobotActivity
 import com.intdv.robotzone.adapters.HumansAdapter
 import com.intdv.robotzone.databinding.ActivityMainBinding
-import com.intdv.robotzone.interfaces.RobotDelegate
 import com.intdv.robotzone.models.HumanModel
 import com.intdv.robotzone.threads.AwarenessThread
 import es.dmoral.toasty.Toasty
 import timber.log.Timber
 
-class MainActivity : RobotActivity(), RobotLifecycleCallbacks, RobotDelegate, HumansAdapter.IHumanListener {
+class MainActivity : RobotActivity(), RobotLifecycleCallbacks, HumansAdapter.IHumanListener {
 
     private var _binding: ActivityMainBinding? = null
     private val binding get() = _binding!!
