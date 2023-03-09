@@ -2,6 +2,7 @@
   <string name="app_name">RobotZone</string>
 
   <!--  Main Activity-->
+  <string name="home_title">Pepper Zone</string>
   <string name="find_humans">Find Humans</string>
   <string name="recommend_approach">Recommend Approach</string>
   <string name="recommend_engage">Recommend Engage</string>
