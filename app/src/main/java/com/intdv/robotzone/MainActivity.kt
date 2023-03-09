@@ -13,16 +13,15 @@ import com.aldebaran.qi.sdk.builder.SayBuilder
 import com.aldebaran.qi.sdk.design.activity.RobotActivity
 import com.aldebaran.qi.sdk.`object`.actuation.Actuation
 import com.aldebaran.qi.sdk.`object`.actuation.Frame
-import com.aldebaran.qi.sdk.`object`.conversation.Say
 import com.aldebaran.qi.sdk.`object`.geometry.Transform
 import com.aldebaran.qi.sdk.`object`.geometry.TransformTime
 import com.aldebaran.qi.sdk.`object`.geometry.Vector3
 import com.aldebaran.qi.sdk.`object`.human.*
-import com.aldebaran.qi.sdk.`object`.humanawareness.EngageHuman
 import com.aldebaran.qi.sdk.`object`.humanawareness.HumanAwareness
 import com.intdv.robotzone.adapters.HumansAdapter
 import com.intdv.robotzone.databinding.ActivityMainBinding
 import timber.log.Timber
+import java.io.IOException
 import java.nio.ByteBuffer
 import kotlin.math.sqrt
 
@@ -36,7 +35,6 @@ class MainActivity : RobotActivity(), RobotLifecycleCallbacks, HumansAdapter.IHu
     private var _qiContext: QiContext? = null
     private var _humanAwareness: HumanAwareness? = null
     private var _engagement: Future<Void>? = null
-    private var _approach: Future<Void>? = null
 
     private var selectedHuman: Human? = null
 
@@ -93,24 +91,51 @@ class MainActivity : RobotActivity(), RobotLifecycleCallbacks, HumansAdapter.IHu
     }
 
     private fun findHumansAround() {
-        val humansAroundFuture: Future<List<Human>>? = _humanAwareness?.async()?.humansAround
-        humansAroundFuture?.andThenConsume { humansAround: List<Human> ->
-            Timber.tag(TAG).i("${humansAround.size} human(s) around.")
-            humansAdapter.setHumans(humansAround)
+        Timber.tag(TAG).d("FIND HUMANS")
+
+        try {
+            val humansAround = _humanAwareness?.humansAround
+            Timber.tag(TAG).i("${humansAround?.size} human(s) around.")
+
+            humansAround?.let {
+                humansAdapter.setHumans(it)
+            }
+        } catch (e: IOException) {
+            e.printStackTrace()
         }
     }
 
     private fun recommendHumanToApproach() {
-        val humansAroundFuture: Future<Human>? = _humanAwareness?.async()?.recommendedHumanToApproach
-        humansAroundFuture?.andThenConsume { human: Human ->
-            humansAdapter.setHumans(listOf(human))
+        Timber.tag(TAG).d("RECOMMEND HUMANS TO APPROACH")
+
+        try {
+            val recommendedHumanToApproach =
+                _humanAwareness?.recommendedHumanToApproach
+            Timber.tag(TAG).i("Approach: A Human found")
+
+            recommendedHumanToApproach?.let {
+                humansAdapter.setHumans(listOf(it))
+            }
+
+        } catch (e: IOException) {
+            e.printStackTrace()
         }
     }
 
     private fun recommendHumanToEngage() {
-        val humansAroundFuture: Future<Human>? = _humanAwareness?.async()?.recommendedHumanToEngage
-        humansAroundFuture?.andThenConsume { human: Human ->
-            humansAdapter.setHumans(listOf(human))
+        Timber.tag(TAG).d("RECOMMEND HUMANS TO ENGAGE")
+
+        try {
+            val recommendedHumanToEngage =
+                _humanAwareness?.recommendedHumanToEngage
+            Timber.tag(TAG).i("Engage: A Human found")
+
+            recommendedHumanToEngage?.let {
+                humansAdapter.setHumans(listOf(it))
+            }
+
+        } catch (e: IOException) {
+            e.printStackTrace()
         }
     }
 
@@ -202,39 +227,54 @@ class MainActivity : RobotActivity(), RobotLifecycleCallbacks, HumansAdapter.IHu
 
     private fun approachSelectedHuman(human: Human) {
         _qiContext?.let {
-            val approachHuman = ApproachHumanBuilder.with(it)
+            ApproachHumanBuilder.with(it)
                 .withHuman(human)
-                .build()
-
-            approachHuman.addOnHumanIsTemporarilyUnreachableListener {
-                val say = SayBuilder.with(it)
-                    .withText("I have troubles to reach you, come closer!")
-                    .build()
-                say.run()
-            }
-
-            _approach = approachHuman.async().run()
+                .buildAsync()
+                .andThenConsume { approachHuman ->
+                    approachHuman.addOnHumanIsTemporarilyUnreachableListener {
+                        SayBuilder.with(it)
+                            .withText("I have troubles to reach you, come closer!")
+                            .buildAsync().andThenConsume { say ->
+                                Timber.d("say building finished")
+                                val futureSay = say.async().run()
+                                futureSay.andThenApply {
+                                    Timber.d("say finished")
+                                }
+                            }
+                        approachHuman.async().run()
+                    }
+                }
         }
     }
 
     private fun engageSelectedHuman(human: Human) {
         _qiContext?.let {
-            val engageHuman: EngageHuman = EngageHumanBuilder.with(it)
+            EngageHumanBuilder.with(it)
                 .withHuman(human)
-                .build()
+                .buildAsync()
+                .andThenConsume { engageHuman ->
 
-            val say: Say = SayBuilder.with(it)
-                .withText("Hello!... How are you today?")
-                .build()
+                    engageHuman.addOnHumanIsEngagedListener {
+                        SayBuilder.with(it)
+                            .withText("Hello!... How are you today?")
+                            .buildAsync()
+                            .andThenConsume { say ->
+                                say.async().run()
+                            }
+                    }
 
-            engageHuman.addOnHumanIsEngagedListener { say.run() }
+                    engageHuman.addOnHumanIsDisengagingListener {
+                        SayBuilder.with(it)
+                            .withText("Good bye?")
+                            .buildAsync()
+                            .andThenConsume { say ->
+                                say.async().run()
+                            }
+                        _engagement?.requestCancellation()
+                    }
 
-            engageHuman.addOnHumanIsDisengagingListener {
-                say.run()
-                _engagement?.requestCancellation()
-            }
-
-            _engagement = engageHuman.async().run()
+                    engageHuman.async().run()
+                }
         }
     }
 
