@@ -94,12 +94,18 @@ class MainActivity : RobotActivity(), RobotLifecycleCallbacks, HumansAdapter.IHu
         Timber.tag(TAG).d("FIND HUMANS")
 
         try {
-            val humansAround = _humanAwareness?.humansAround
-            Timber.tag(TAG).i("${humansAround?.size} human(s) around.")
+            Thread {
+                val humansAround = _humanAwareness?.humansAround
 
-            humansAround?.let {
-                humansAdapter.setHumans(it)
-            }
+                runOnUiThread {
+                    Timber.tag(TAG).i("${humansAround?.size} human(s) around.")
+
+                    humansAround?.let {
+                        humansAdapter.setHumans(it)
+                    }
+                }
+            }.start()
+
         } catch (e: IOException) {
             e.printStackTrace()
         }
@@ -109,13 +115,18 @@ class MainActivity : RobotActivity(), RobotLifecycleCallbacks, HumansAdapter.IHu
         Timber.tag(TAG).d("RECOMMEND HUMANS TO APPROACH")
 
         try {
-            val recommendedHumanToApproach =
-                _humanAwareness?.recommendedHumanToApproach
-            Timber.tag(TAG).i("Approach: A Human found")
+            Thread {
+                val recommendedHumanToApproach =
+                    _humanAwareness?.recommendedHumanToApproach
 
-            recommendedHumanToApproach?.let {
-                humansAdapter.setHumans(listOf(it))
-            }
+                runOnUiThread {
+                    Timber.tag(TAG).i("Approach: A Human found")
+
+                    recommendedHumanToApproach?.let {
+                        humansAdapter.setHumans(listOf(it))
+                    }
+                }
+            }.start()
 
         } catch (e: IOException) {
             e.printStackTrace()
@@ -126,13 +137,18 @@ class MainActivity : RobotActivity(), RobotLifecycleCallbacks, HumansAdapter.IHu
         Timber.tag(TAG).d("RECOMMEND HUMANS TO ENGAGE")
 
         try {
-            val recommendedHumanToEngage =
-                _humanAwareness?.recommendedHumanToEngage
-            Timber.tag(TAG).i("Engage: A Human found")
+            Thread {
+                val recommendedHumanToEngage =
+                    _humanAwareness?.recommendedHumanToEngage
 
-            recommendedHumanToEngage?.let {
-                humansAdapter.setHumans(listOf(it))
-            }
+                runOnUiThread {
+                    Timber.tag(TAG).i("Engage: A Human found")
+
+                    recommendedHumanToEngage?.let {
+                        humansAdapter.setHumans(listOf(it))
+                    }
+                }
+            }.start()
 
         } catch (e: IOException) {
             e.printStackTrace()
@@ -148,38 +164,38 @@ class MainActivity : RobotActivity(), RobotLifecycleCallbacks, HumansAdapter.IHu
 
     private fun retrieveCharacteristics(human: Human) {
         // Get the characteristics.
-        val age: Int = human.estimatedAge.years
-        binding.tvAge.text = getString(R.string.human_age, age)
 
-        val gender: Gender = human.estimatedGender
-        binding.tvGender.text = getString(R.string.human_gender, gender)
+        Thread {
+            val age: Int = human.estimatedAge.years
+            val gender: Gender = human.estimatedGender
+            val pleasureState: PleasureState = human.emotion.pleasure
+            val excitementState: ExcitementState = human.emotion.excitement
+            val engagementIntentionState: EngagementIntentionState = human.engagementIntention
+            val smileState: SmileState = human.facialExpressions.smile
+            val attentionState: AttentionState = human.attention
 
-        val pleasureState: PleasureState = human.emotion.pleasure
-        binding.tvPleasure.text = getString(R.string.human_pleasure_state, pleasureState)
+            retrieveDistance(human)
+            retrievePhoto(human)
 
-        val excitementState: ExcitementState = human.emotion.excitement
-        binding.tvExcitement.text = getString(R.string.human_excitement_state, excitementState)
+            runOnUiThread {
+                // Display the characteristics.
+                Timber.tag(TAG).i("Age: $age year(s)")
+                Timber.tag(TAG).i("Gender: $gender")
+                Timber.tag(TAG).i("Pleasure state: $pleasureState")
+                Timber.tag(TAG).i("Excitement state: $excitementState")
+                Timber.tag(TAG).i("Engagement state: $engagementIntentionState")
+                Timber.tag(TAG).i("Smile state: $smileState")
+                Timber.tag(TAG).i("Attention state: $attentionState")
 
-        val engagementIntentionState: EngagementIntentionState = human.engagementIntention
-        binding.tvEngagement.text = getString(R.string.human_engagement_state, engagementIntentionState)
-
-        val smileState: SmileState = human.facialExpressions.smile
-        binding.tvSmile.text = getString(R.string.human_smile_state, smileState)
-
-        val attentionState: AttentionState = human.attention
-        binding.tvAttention.text = getString(R.string.human_attention_state, attentionState)
-
-        retrieveDistance(human)
-        retrievePhoto(human)
-
-        // Display the characteristics.
-        Timber.tag(TAG).i("Age: $age year(s)")
-        Timber.tag(TAG).i("Gender: $gender")
-        Timber.tag(TAG).i("Pleasure state: $pleasureState")
-        Timber.tag(TAG).i("Excitement state: $excitementState")
-        Timber.tag(TAG).i("Engagement state: $engagementIntentionState")
-        Timber.tag(TAG).i("Smile state: $smileState")
-        Timber.tag(TAG).i("Attention state: $attentionState")
+                binding.tvAge.text = getString(R.string.human_age, age)
+                binding.tvGender.text = getString(R.string.human_gender, gender)
+                binding.tvPleasure.text = getString(R.string.human_pleasure_state, pleasureState)
+                binding.tvExcitement.text = getString(R.string.human_excitement_state, excitementState)
+                binding.tvEngagement.text = getString(R.string.human_engagement_state, engagementIntentionState)
+                binding.tvSmile.text = getString(R.string.human_smile_state, smileState)
+                binding.tvAttention.text = getString(R.string.human_attention_state, attentionState)
+            }
+        }.start()
     }
 
     private fun retrieveDistance(human: Human) {
@@ -190,25 +206,6 @@ class MainActivity : RobotActivity(), RobotLifecycleCallbacks, HumansAdapter.IHu
 
             val distance = computeDistance(humanFrame, robotFrame)
             Timber.tag(TAG).i("Distance: $distance meter(s).")
-        }
-    }
-
-    private fun retrievePhoto(human: Human) {
-        // Get face picture.
-        val facePictureBuffer: ByteBuffer = human.facePicture.image.data
-        facePictureBuffer.rewind()
-        val pictureBufferSize: Int = facePictureBuffer.remaining()
-        val facePictureArray = ByteArray(pictureBufferSize)
-        facePictureBuffer.get(facePictureArray)
-
-        // Test if the robot has an empty picture
-        if (pictureBufferSize != 0) {
-            Timber.tag(TAG).i("Picture available")
-            val facePicture = BitmapFactory.decodeByteArray(facePictureArray, 0, pictureBufferSize)
-            binding.ivHumanFace.setImageBitmap(facePicture)
-        } else {
-            Timber.tag(TAG).i("Picture not available")
-            binding.ivHumanFace.setImageResource(R.drawable.ic_person)
         }
     }
 
@@ -223,6 +220,29 @@ class MainActivity : RobotActivity(), RobotLifecycleCallbacks, HumansAdapter.IHu
         val y = translation.y
         // Compute the distance and return it.
         return sqrt(x * x + y * y)
+    }
+
+    private fun retrievePhoto(human: Human) {
+        // Get face picture.
+        val facePictureBuffer: ByteBuffer = human.facePicture.image.data
+        facePictureBuffer.rewind()
+        val pictureBufferSize: Int = facePictureBuffer.remaining()
+        val facePictureArray = ByteArray(pictureBufferSize)
+        facePictureBuffer.get(facePictureArray)
+
+        // Test if the robot has an empty picture
+        if (pictureBufferSize != 0) {
+            Timber.tag(TAG).i("Picture available")
+            val facePicture = BitmapFactory.decodeByteArray(facePictureArray, 0, pictureBufferSize)
+            runOnUiThread {
+                binding.ivHumanFace.setImageBitmap(facePicture)
+            }
+        } else {
+            Timber.tag(TAG).i("Picture not available")
+            runOnUiThread {
+                binding.ivHumanFace.setImageResource(R.drawable.ic_person)
+            }
+        }
     }
 
     private fun approachSelectedHuman(human: Human) {
