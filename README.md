@@ -4,12 +4,30 @@ This is a project to test Pepper robot human awareness and whether it can detect
 
 ## Implementation
 
-The project is very basic as it doesn't offer a lot control options as offered by Pepper.
-1) We implement a SensorListener that starts looking for humans around the robot.
-2) If the sensor detects a human, It will start its callback function.
-3) There are 3 status for this sensor:
-    - **HUMAN_CLOSER:** If the human is moving closer to the robot.
-    - **HUMAN_AWAY:** If the human is moving away from the robot.
-    - **HUMAN_UNKNOWN:** If the human status is unknown.
+The project has 3 main functionalities.
+1) Find Humans 
+   - Detects humans that are around the robot generally.
+   - Return a list of humans that are around the robot.
    
-- Within each status you can implement any needed actions like engaging with this human or saying something to him.
+2) Recommend Human To Approach 
+   - Detects humans that might be interested in the robot and can be approached.
+   - Returns one human only.
+   
+3) Recommend Human To Engage
+   - Detects humans that might be interested in the robot and can be engaged.
+   - Returns one human only.
+
+In each of the previous modes, the robot can detect a set of features that are related to the human's status. The robot can detect the following features:
+- Age 
+- Gender
+- Pleasure State
+- Excitement State
+- Engagement Intention State
+- Smile State
+- Attention State
+- Distance
+- Photo
+   
+After you select the desired Human, you can then order the Robot to either approach or engage with this human.
+- Approach: The robot will approach the human and start a conversation.
+- Engage: The robot can speak or wave to the human without leaving its place.

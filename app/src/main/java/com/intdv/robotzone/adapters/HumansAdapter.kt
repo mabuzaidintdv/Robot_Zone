@@ -27,7 +27,7 @@ class HumansAdapter(private val listener: IHumanListener) : RecyclerView.Adapter
         val human = humans[position]
 
         with(holder as HumansViewHolder) {
-            bind(human)
+            bind(human, position)
         }
     }
 
@@ -43,9 +43,9 @@ class HumansAdapter(private val listener: IHumanListener) : RecyclerView.Adapter
         private val binding: ItemHumanBinding
     ) : RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(human: Human) {
+        fun bind(human: Human, position: Int) {
             binding.apply {
-                tvHuman.text = human.estimatedAge.toString()
+                tvHuman.text = "Human $position"
                 root.setOnClickListener {
                     listener.onHumanClicked(human)
                 }
